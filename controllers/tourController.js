@@ -31,10 +31,36 @@ const Tour = require('./../models/tourModel');
 // };
 
 exports.getAllTours = async (req, res) => {
-  console.log(req.requestTime);
-
   try {
-    const tours = await Tour.find({});
+    // Build Query
+    const queryObj = { ...req.query };
+
+    const excludedFields = ['sort', 'limit', 'page'];
+
+    excludedFields.forEach((el) => {
+      return delete queryObj[el];
+    });
+
+    /** We should not await the below query because we will be chaining different methods
+     *  because when we await find it will return us with the query so we await the main
+     *  query later
+     */
+    const query = Tour.find(queryObj);
+
+    // const query = await Tour.find({
+    //   duration: 5,
+    //   difficulty: 'easy',
+    // });
+
+    // Same as above
+    // const query = await Tour.find()
+    //   .where('duration')
+    //   .equals(5)
+    //   .where('difficulty')
+    //   .equals('easy');
+
+    // Execute Query
+    const tours = await query;
 
     res.status(200).json({
       status: 'success',
