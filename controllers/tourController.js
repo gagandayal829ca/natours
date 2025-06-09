@@ -1,5 +1,6 @@
 // const fs = require('fs');
 const Tour = require('./../models/tourModel');
+const qs = require('qs');
 
 // const tours = JSON.parse(
 //   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`)
@@ -33,19 +34,29 @@ const Tour = require('./../models/tourModel');
 exports.getAllTours = async (req, res) => {
   try {
     // Build Query
-    const queryObj = { ...req.query };
+    // 1) Filtering
 
+    let queryObj = { ...req.query };
+
+    console.log(queryObj);
+    queryObj = qs.parse(queryObj);
+    console.log('queryObj', queryObj);
     const excludedFields = ['sort', 'limit', 'page'];
 
     excludedFields.forEach((el) => {
       return delete queryObj[el];
     });
 
+    // 2. Advanced Filtering
+
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+    console.log(JSON.parse(queryStr));
+
     /** We should not await the below query because we will be chaining different methods
      *  because when we await find it will return us with the query so we await the main
      *  query later
      */
-    const query = Tour.find(queryObj);
 
     // const query = await Tour.find({
     //   duration: 5,
@@ -59,6 +70,7 @@ exports.getAllTours = async (req, res) => {
     //   .where('difficulty')
     //   .equals('easy');
 
+    const query = Tour.find(JSON.parse(queryStr));
     // Execute Query
     const tours = await query;
 
