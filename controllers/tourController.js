@@ -34,7 +34,7 @@ const qs = require('qs');
 exports.getAllTours = async (req, res) => {
   try {
     // Build Query
-    // 1) Filtering
+    // 1A) Filtering
 
     let queryObj = { ...req.query };
 
@@ -47,7 +47,7 @@ exports.getAllTours = async (req, res) => {
       return delete queryObj[el];
     });
 
-    // 2. Advanced Filtering
+    // 1B. Advanced Filtering
 
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
@@ -58,19 +58,15 @@ exports.getAllTours = async (req, res) => {
      *  query later
      */
 
-    // const query = await Tour.find({
-    //   duration: 5,
-    //   difficulty: 'easy',
-    // });
+    let query = Tour.find(JSON.parse(queryStr));
 
-    // Same as above
-    // const query = await Tour.find()
-    //   .where('duration')
-    //   .equals(5)
-    //   .where('difficulty')
-    //   .equals('easy');
-
-    const query = Tour.find(JSON.parse(queryStr));
+    // 2. Sorting
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort('-createdAt');
+    }
     // Execute Query
     const tours = await query;
 
