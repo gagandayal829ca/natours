@@ -1,5 +1,6 @@
 // const fs = require('fs');
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('./../utils/apiFeatures');
 const qs = require('qs');
 
 // const tours = JSON.parse(
@@ -31,69 +32,94 @@ const qs = require('qs');
 //   next();
 // };
 
+exports.aliasTopTours = (req, res, next) => {
+  /** This is a difficult route to implement now because in recent version of express the req.query is immutable
+   *  We have to figure out ways to implement this route
+   */
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,difficulty';
+  console.log('Alias Middleware req.query:', req.query); // This should now show the keys
+  console.log('newQuery', newQuery);
+  next();
+};
+
+// class APIFeatures {
+//   constructor(query, queryString) {
+//     this.query = query;
+//     this.queryString = queryString;
+//   }
+
+//   filter() {
+//     let queryObj = { ...this.queryString };
+
+//     queryObj = qs.parse(queryObj);
+
+//     const excludedFields = ['sort', 'limit', 'page', 'fields'];
+
+//     excludedFields.forEach((el) => {
+//       return delete queryObj[el];
+//     });
+
+//     // 1B. Advanced Filtering
+
+//     let queryStr = JSON.stringify(queryObj);
+//     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+
+//     /** We should not await the below query because we will be chaining different methods
+//      *  because when we await find it will return us with the query so we await the main
+//      *  query later
+//      */
+//     this.query = this.query.find(JSON.parse(queryStr));
+//     // let query = Tour.find(JSON.parse(queryStr));
+//     return this;
+//   }
+
+//   sort() {
+//     if (this.queryString.sort) {
+//       const sortBy = this.queryString.sort.split(',').join(' ');
+//       this.query = this.query.sort(sortBy);
+//     } else {
+//       this.query = this.query.sort('-createdAt');
+//     }
+
+//     return this;
+//   }
+
+//   limitFields() {
+//     if (this.queryString.fields) {
+//       const fields = this.queryString.fields.split(',').join(' ');
+
+//       this.query = this.query.select(fields);
+//     } else {
+//       // Just excluding the __v field from mongodb in else nothing mandatory
+//       this.query = this.query.select('-__v');
+//     }
+
+//     return this;
+//   }
+
+//   pagination() {
+//     const page = this.queryString.page * 1 || 1;
+//     const limit = this.queryString.limit * 1 || 100;
+//     const skip = (page - 1) * limit;
+
+//     this.query = this.query.skip(skip).limit(limit);
+
+//     return this;
+//   }
+// }
+
 exports.getAllTours = async (req, res) => {
   try {
-    // Build Query
-    // 1A) Filtering
-
-    let queryObj = { ...req.query };
-
-    console.log(queryObj);
-    queryObj = qs.parse(queryObj);
-    console.log('queryObj', queryObj);
-    const excludedFields = ['sort', 'limit', 'page', 'fields'];
-
-    excludedFields.forEach((el) => {
-      return delete queryObj[el];
-    });
-
-    // 1B. Advanced Filtering
-
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-    console.log(JSON.parse(queryStr));
-
-    /** We should not await the below query because we will be chaining different methods
-     *  because when we await find it will return us with the query so we await the main
-     *  query later
-     */
-
-    let query = Tour.find(JSON.parse(queryStr));
-
-    // 2. Sorting
-    if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
-    }
-
-    // 3. Field Limiting
-
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-
-      query = query.select(fields);
-    } else {
-      // Just excluding the __v field from mongodb in else nothing mandatory
-      query = query.select('-__v');
-    }
-
-    // 4. Pagination
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 100;
-    const skip = (page - 1) * limit;
-
-    query = query.skip(skip).limit(limit);
-
-    if (req.query.page) {
-      const numTours = await Tour.countDocuments();
-
-      if (skip >= numTours) throw new Error('This page does not exist');
-    }
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .pagination();
 
     // Execute Query
-    const tours = await query;
+    const tours = await features.query;
 
     res.status(200).json({
       status: 'success',
@@ -101,20 +127,11 @@ exports.getAllTours = async (req, res) => {
       data: tours,
     });
   } catch (error) {
-    // 404: Not Found
     res.status(404).json({
       status: 'fail',
       message: error,
     });
   }
-  // res.status(200).json({
-  //   status: 'success',
-  //   requestedAt: req.requestTime,
-  //   results: tours.length,
-  //   data: {
-  //     tours,
-  //   },
-  // });
 };
 
 exports.getTour = async (req, res) => {

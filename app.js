@@ -5,6 +5,7 @@ const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 
 const app = express();
+app.use(express.json());
 
 console.log(process.env.NODE_ENV);
 // 1. Middlewares
