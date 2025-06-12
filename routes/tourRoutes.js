@@ -5,14 +5,11 @@ const router = express.Router();
 
 // router.param('id', tourController.checkID);
 
-router.route('/top-5-cheap').get(
-  (req, res, next) => {
-    console.log('✅ Middleware HIT');
-    next();
-  },
-  tourController.aliasTopTours,
-  tourController.getAllTours
-);
+router
+  .route('/top-5-cheap')
+  .get(tourController.aliasTopTours, tourController.getAllTours);
+
+router.route('/get-tour-stats').get(tourController.getTourStats);
 
 router
   .route('/')

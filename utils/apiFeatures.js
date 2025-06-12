@@ -1,3 +1,5 @@
+const qs = require('qs');
+
 class APIFeatures {
   constructor(query, queryString) {
     this.query = query;
@@ -8,24 +10,15 @@ class APIFeatures {
     let queryObj = { ...this.queryString };
 
     queryObj = qs.parse(queryObj);
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    excludedFields.forEach((el) => delete queryObj[el]);
 
-    const excludedFields = ['sort', 'limit', 'page', 'fields'];
-
-    excludedFields.forEach((el) => {
-      return delete queryObj[el];
-    });
-
-    // 1B. Advanced Filtering
-
+    // 1B) Advanced filtering
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
 
-    /** We should not await the below query because we will be chaining different methods
-     *  because when we await find it will return us with the query so we await the main
-     *  query later
-     */
     this.query = this.query.find(JSON.parse(queryStr));
-    // let query = Tour.find(JSON.parse(queryStr));
+
     return this;
   }
 
@@ -43,17 +36,15 @@ class APIFeatures {
   limitFields() {
     if (this.queryString.fields) {
       const fields = this.queryString.fields.split(',').join(' ');
-
       this.query = this.query.select(fields);
     } else {
-      // Just excluding the __v field from mongodb in else nothing mandatory
       this.query = this.query.select('-__v');
     }
 
     return this;
   }
 
-  pagination() {
+  paginate() {
     const page = this.queryString.page * 1 || 1;
     const limit = this.queryString.limit * 1 || 100;
     const skip = (page - 1) * limit;
@@ -63,5 +54,4 @@ class APIFeatures {
     return this;
   }
 }
-
-module.export = APIFeatures;
+module.exports = APIFeatures;

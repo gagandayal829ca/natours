@@ -38,9 +38,7 @@ exports.aliasTopTours = (req, res, next) => {
    */
   req.query.limit = '5';
   req.query.sort = '-ratingsAverage,price';
-  req.query.fields = 'name,price,ratingsAverage,difficulty';
-  console.log('Alias Middleware req.query:', req.query); // This should now show the keys
-  console.log('newQuery', newQuery);
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
   next();
 };
 
@@ -56,7 +54,7 @@ exports.aliasTopTours = (req, res, next) => {
 //     queryObj = qs.parse(queryObj);
 
 //     const excludedFields = ['sort', 'limit', 'page', 'fields'];
-
+//     console.log('in filter');
 //     excludedFields.forEach((el) => {
 //       return delete queryObj[el];
 //     });
@@ -78,6 +76,7 @@ exports.aliasTopTours = (req, res, next) => {
 //   sort() {
 //     if (this.queryString.sort) {
 //       const sortBy = this.queryString.sort.split(',').join(' ');
+//       console.log('in sort');
 //       this.query = this.query.sort(sortBy);
 //     } else {
 //       this.query = this.query.sort('-createdAt');
@@ -89,7 +88,7 @@ exports.aliasTopTours = (req, res, next) => {
 //   limitFields() {
 //     if (this.queryString.fields) {
 //       const fields = this.queryString.fields.split(',').join(' ');
-
+//       console.log('in limitfields');
 //       this.query = this.query.select(fields);
 //     } else {
 //       // Just excluding the __v field from mongodb in else nothing mandatory
@@ -103,7 +102,7 @@ exports.aliasTopTours = (req, res, next) => {
 //     const page = this.queryString.page * 1 || 1;
 //     const limit = this.queryString.limit * 1 || 100;
 //     const skip = (page - 1) * limit;
-
+//     console.log('in pagination');
 //     this.query = this.query.skip(skip).limit(limit);
 
 //     return this;
@@ -112,24 +111,26 @@ exports.aliasTopTours = (req, res, next) => {
 
 exports.getAllTours = async (req, res) => {
   try {
+    // EXECUTE QUERY
     const features = new APIFeatures(Tour.find(), req.query)
       .filter()
       .sort()
       .limitFields()
-      .pagination();
-
-    // Execute Query
+      .paginate();
     const tours = await features.query;
 
+    // SEND RESPONSE
     res.status(200).json({
       status: 'success',
       results: tours.length,
-      data: tours,
+      data: {
+        tours,
+      },
     });
-  } catch (error) {
+  } catch (err) {
     res.status(404).json({
       status: 'fail',
-      message: error,
+      message: err,
     });
   }
 };
@@ -226,4 +227,44 @@ exports.deleteTour = async (req, res) => {
       tour: '<Updated tour here...>',
     },
   });
+};
+
+exports.getTourStats = async (req, res) => {
+  try {
+    const stats = await Tour.aggregate([
+      {
+        $match: { ratingsAverage: { $gte: 4.5 } },
+      },
+      {
+        $group: {
+          _id: { $toUpper: '$difficulty' },
+          numTours: { $sum: 1 },
+          numRatings: { $avg: 'ratingsQuantity' },
+          avgRating: { $avg: '$ratingsAverage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+      {
+        $sort: { avgPrice: 1 },
+      },
+      // remember id is now difficulty after going through pipeline so we used $ne: 'EASY'
+      {
+        $match: { _id: { $ne: 'EASY' } },
+      },
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats,
+      },
+    });
+  } catch (error) {
+    res.status(404).json({
+      status: 'fail',
+      message: error,
+    });
+  }
 };
