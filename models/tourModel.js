@@ -50,7 +50,18 @@ const tourSchema = mongoose.Schema(
       type: Number,
       required: [true, 'A tour must have price'],
     },
-    priceDiscount: Number,
+    priceDiscount: {
+      type: Number,
+      validate: {
+        validator: function (val) {
+          //the val is the priceDiscount value sent in the current doc
+          // Important: this here points to a newly created document , but it wont run on update query
+          return val < this.price;
+        },
+        // We can access the val in message using {VALUE} , this method is specific to mongoose not JS
+        message: 'Discount price ({VALUE}) should be below the regular price',
+      },
+    },
     summary: {
       type: String,
       trim: true,
