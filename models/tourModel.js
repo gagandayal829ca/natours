@@ -99,6 +99,17 @@ tourSchema.post(/^find/, function (docs, next) {
   next();
 });
 
+// Aggregation middleware , it is used for modifying the aggregation pipeline , so
+// the filter that we did for secret tours , will be coming in the get tour stats route
+// so we need to filter that out from their and we can use aggregation middleware for that
+// this keyword here will give us aggregation object
+
+tourSchema.pre('aggregate', function (next) {
+  console.log(this.pipeline());
+  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+  next();
+});
+
 const Tour = mongoose.model('Tour', tourSchema);
 
 module.exports = Tour;
