@@ -65,9 +65,8 @@ module.exports = (err, req, res, next) => {
 
     let error = Object.create(err);
     // let error = { ...err };
-    console.log('errors in', error);
+
     if (error.name === 'CastError') {
-      console.log('inside 2');
       error = handleCastErrorDB(error);
     }
 
