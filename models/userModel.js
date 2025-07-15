@@ -24,6 +24,14 @@ const userSchema = new mongoose.Schema({
   passwordConfirm: {
     type: String,
     required: [true, 'Please confirm your password'],
+    validate: {
+      // This only works on CREATE and SAVE !!!
+      // So whenever we have to update a user , we have to use save not findOne and update like tours
+      validator: function (el) {
+        return el === this.password;
+      },
+      message: 'Passwords are not the same',
+    },
   },
 });
 
