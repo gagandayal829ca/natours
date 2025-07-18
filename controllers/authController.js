@@ -2,6 +2,7 @@ const User = require('./../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const jwt = require('jsonwebtoken');
 const AppError = require('./../utils/appError');
+const bcrypt = require('bcryptjs');
 
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
@@ -24,7 +25,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.login = (req, res, next) => {
+exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   // 1. Check if email & password exists
@@ -34,7 +35,18 @@ exports.login = (req, res, next) => {
   }
 
   // 2. Check if the user exists && password is correct
-  const user = User.findOne({ email: email });
+  // using + in select will bring other details along with the password
+  // if + is not used then only _id and password will be displayed
+  const user = await User.findOne({ email: email }).select('+password');
+
+  // password === $2b$12$iMIeldL9SE51s7NGSUyRDuZelvj3HWH5rSW5O8aeOlbWnquaA04qu
+
+  const correct = await user.comparePassword(password, user.password);
+
+  if (!user || !(await user.comparePassword(password, user.password))) {
+    return next(new AppError('Incorrect email or password', 401));
+  }
+  console.log('user', user);
   // 3. If everything ok , send to client
   const token = '';
 
@@ -42,4 +54,4 @@ exports.login = (req, res, next) => {
     status: 'success',
     token,
   });
-};
+});
