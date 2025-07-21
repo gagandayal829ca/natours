@@ -4,6 +4,12 @@ const jwt = require('jsonwebtoken');
 const AppError = require('./../utils/appError');
 const bcrypt = require('bcryptjs');
 
+exports.signToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -12,9 +18,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
   });
 
-  const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
+  const token = this.signToken(newUser._id);
 
   res.status(201).json({
     status: 'success',
@@ -41,14 +45,14 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // password === $2b$12$iMIeldL9SE51s7NGSUyRDuZelvj3HWH5rSW5O8aeOlbWnquaA04qu
 
-  const correct = await user.comparePassword(password, user.password);
+  // const correct = await user.comparePassword(password, user.password);
 
-  if (!user || !(await user.comparePassword(password, user.password))) {
+  if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
   console.log('user', user);
   // 3. If everything ok , send to client
-  const token = '';
+  const token = this.signToken(user._id);
 
   res.status(200).json({
     status: 'success',
