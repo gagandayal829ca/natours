@@ -50,12 +50,39 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError('Incorrect email or password', 401));
   }
-  console.log('user', user);
+  // console.log('user', user);
   // 3. If everything ok , send to client
   const token = this.signToken(user._id);
 
   res.status(200).json({
     status: 'success',
     token,
+  });
+});
+
+exports.protect = catchAsync(async (req, res, next) => {
+  // 1. Getting token and checking if it's there
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  console.log(token);
+  if (!token) {
+    return next(
+      new AppError('You are not logged in ! Please log in to get access', 401)
+    );
+  }
+  // 2. Verify token
+
+  // 3. Check if user still exists
+
+  // 4. Check if user changed password after the token was issued
+  res.status(201).json({
+    status: 'success',
   });
 });
