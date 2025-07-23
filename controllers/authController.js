@@ -15,6 +15,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
+    role: req.body.role,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: req.body.passwordChangedAt,
@@ -105,3 +106,20 @@ exports.protect = catchAsync(async (req, res, next) => {
   req.user = currentUser;
   next();
 });
+
+// To implement the below, we need a way to pass arguments like admin and lead-guide used in tourRoutes
+// For this we will create a wrapper function which will return the middleware function that we want to create
+exports.restrictTo = (...roles) => {
+  // The middleware below will have access to ...roles array because there is a closure
+  return (req, res, next) => {
+    // roles ['admin', 'lead-guide']
+    if (!roles.includes(req.user.role)) {
+      // This comes from the protect route because we put the user in request( req.user = currentUser)
+      return next(
+        new AppError('You do not have permission to perform this action', 403)
+      );
+    }
+
+    next();
+  };
+};
