@@ -192,16 +192,19 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   user.password = req.body.password; // We will send the password and passwordConfirm via the body
   user.passwordConfirm = req.body.passwordConfirm;
-  user.passResetToken = undefined;
+  user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
 
   // 3. Update changedPasswordAt property for the user
   // 4. Log the user in, send JWT
+  // Sometimes this token is created before the changePasswordAt timestamp is created
+  // We fix that by adding a - 1000ms time , while creating passwordChangedAt , not 100% accurate
+  // but 1 sec doesn't make too much difference
   const token = this.signToken(user._id);
 
   res.status(200).json({
-    status: 'sucess',
+    status: 'success',
     token,
   });
 });

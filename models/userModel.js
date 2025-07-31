@@ -55,6 +55,23 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
+// To change the passwordChangedAt
+userSchema.pre('save', function (next) {
+  if (!this.isModified('password') || this.isNew) return next(); // If we didn't modify the password property , then go to next middleware
+
+  // When we create a new document then we modify the password in real scenario
+  /** In theory this should work fine , but in real sometimes saving to the database could be
+   *  slower than issueing the jwt , making it the passwordChangedAt timestamp to be set after jwt has been created
+   *  , because of that user will not be able to login the new user
+   *  That is why this timestamp exists, so that we can compare it with the timestamp on jwt (decoded.iat)
+   */
+  // Sometimes this token is created before the changePasswordAt timestamp is created
+  // We fix that by adding a - 1000ms time (putting it in past) , while creating passwordChangedAt , not 100% accurate
+  // but 1 sec doesn't make too much difference
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
 // This is an instance method and will be available on all the user documents
 userSchema.methods.correctPassword = async function (
   candidatePassword,
