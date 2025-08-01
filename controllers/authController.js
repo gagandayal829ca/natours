@@ -13,6 +13,19 @@ exports.signToken = (id) => {
   });
 };
 
+//
+const createSendToken = (user, statusCode, res) => {
+  const token = this.signToken(user._id);
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -23,15 +36,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordChangedAt: req.body.passwordChangedAt,
   });
 
-  const token = this.signToken(newUser._id);
-
-  res.status(201).json({
-    status: 'success',
-    token,
-    data: {
-      user: newUser,
-    },
-  });
+  createSendToken(newUser, 201, res);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -57,12 +62,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
   // console.log('user', user);
   // 3. If everything ok , send to client
-  const token = this.signToken(user._id);
-
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+  createSendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -201,10 +201,30 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   // Sometimes this token is created before the changePasswordAt timestamp is created
   // We fix that by adding a - 1000ms time , while creating passwordChangedAt , not 100% accurate
   // but 1 sec doesn't make too much difference
-  const token = this.signToken(user._id);
+  createSendToken(user, 200, res);
+});
 
-  res.status(200).json({
-    status: 'success',
-    token,
-  });
+/** This functionality is only for logged in users
+ *  Still this needs that old password should be entered before updating the password
+ *  Eg. If someone gets access to your computer and it has you logged in then he can change password
+ */
+exports.updatePassword = catchAsync(async (req, res, next) => {
+  // 1. Get user from collection
+
+  const user = await User.findById(req.user._id).select('+password');
+
+  // 2. Check if posted password is correct
+
+  if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
+    return next(new AppError('Your current password is wrong', 401));
+  }
+  // 3. If so, update the password
+  // This time we didn't turn off the validation because
+  // we need to check if passwordConfirm === password
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+
+  await user.save();
+  // 4. Log the user in , send JWT
+  createSendToken(user, 200, res);
 });
