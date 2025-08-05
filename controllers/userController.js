@@ -33,12 +33,13 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       )
     );
   }
-  // 2. Update user document
+  // 2. Update user document.
   /** We are using filter object because in the controller we are updating user data
    *  and anyone if not filtered can pass role = "admin" in the req.body and can update his role
    *  which should not done , hence we filter that it consists only name and email.
    *  Important: Here we use findByIdAndUpdate not save because we only want user data updated not the password
-   *  the validators for passwords will run if we use that is the reason we only used user.save() during
+   *  , because password and passwordConfirm are required fields and will give required error while using user.save()
+   * , the validators for passwords will run if we use that is the reason we only used user.save() during
    *  password updated and not the findByIdAndUpdate
    */
   const filteredBody = filterObj(req.body, 'name', 'email');
@@ -52,6 +53,15 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     data: {
       user: updatedUser,
     },
+  });
+});
+
+exports.deleteMe = catchAsync(async (req, res, next) => {
+  await User.findByIdAndUpdate(req.user._id, { active: false });
+
+  res.status(204).json({
+    status: 'success',
+    data: null,
   });
 });
 
