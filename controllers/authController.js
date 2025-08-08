@@ -13,9 +13,27 @@ exports.signToken = (id) => {
   });
 };
 
-//
+const cookieOptions = {
+  expires: new Date(
+    Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+  ),
+  /** The secure we will only set in production and it will be added using cookieOptions.secure = true
+   *  Not removing secure from below to get an idea on how it is sent
+   */
+  // secure: true, // This make sure cookie is sent over https connections only, use in production
+  httpOnly: true, // This will prevent cross site scripting attacks, browsers will be unable to modify cookie when true
+};
+
+if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
+
 const createSendToken = (user, statusCode, res) => {
   const token = this.signToken(user._id);
+  res.cookie('jwt', token, cookieOptions);
+
+  /** The reason we set it to undefined is that the encrypted password shows up when sign up new user
+   *  we had done select as false in get all users but sign up is different.
+   */
+  user.password = undefined;
 
   res.status(statusCode).json({
     status: 'success',
