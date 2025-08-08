@@ -1,6 +1,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const globalErrorHandler = require('./controllers/errorController');
 const AppError = require('./utils/appError');
@@ -12,6 +13,10 @@ app.use(express.json());
 
 // console.log(process.env.NODE_ENV);
 // 1. Global Middlewares
+
+// Set security HTTP headers
+// Helmet improves your security by adding more headers related to security in your requests.
+app.use(helmet());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
@@ -24,9 +29,14 @@ const limiter = rateLimit({
 
 /** We need to limit every route , so we use /api meaning limit every route starting with /api */
 app.use('/api', limiter);
-app.use(express.json());
+
+// Body parser, reading data from body into req.body
+app.use(express.json({ limit: '10kb' }));
+
+// Serving static files
 app.use(express.static(`${__dirname}/public`));
 
+// Test middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   console.log(req.headers);
