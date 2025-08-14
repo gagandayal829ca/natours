@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
+const hpp = require('hpp');
 
 const globalErrorHandler = require('./controllers/errorController');
 const AppError = require('./utils/appError');
@@ -12,13 +13,6 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 app.use(express.json({ limit: '10kb' }));
-
-// Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
-
-// Data sanitization against XSS
-// The below will clean any user input from malicious html
-app.use(xss());
 
 // console.log(process.env.NODE_ENV);
 // 1. Global Middlewares
@@ -41,6 +35,27 @@ app.use('/api', limiter);
 
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
+
+// Data sanitization against NoSQL query injection
+// app.use(mongoSanitize());
+
+// Data sanitization against XSS
+// The below will clean any user input from malicious html
+// app.use(xss());
+
+// Prevent Parameter Pollution
+app.use(
+  hpp({
+    whitelist: [
+      'duration',
+      'ratingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price',
+    ],
+  })
+);
 
 // Serving static files
 app.use(express.static(`${__dirname}/public`));
