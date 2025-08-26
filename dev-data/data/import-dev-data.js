@@ -4,7 +4,10 @@ const dotenv = require('dotenv');
 const Tour = require('./../../models/tourModel');
 dotenv.config({ path: './config.env' });
 
-const DB = process.env.DATABASE;
+const DB = process.env.DATABASE.replace(
+  '<PASSWORD>',
+  process.env.DATABASE_PASSWORD
+);
 
 mongoose
   .connect(DB, {
@@ -17,9 +20,7 @@ mongoose
   });
 
 // The tours-simple.json is a simple json and we need to convert it to js object,
-const tours = JSON.parse(
-  fs.readFileSync(`${__dirname}/tours-simple.json`, 'utf-8')
-);
+const tours = JSON.parse(fs.readFileSync(`${__dirname}/tours.json`, 'utf-8'));
 
 // Import data into db
 const importData = async () => {

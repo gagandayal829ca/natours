@@ -85,6 +85,34 @@ const tourSchema = mongoose.Schema(
     secretTour: {
       type: Boolean,
     },
+    startLocation: {
+      // GeoJSON -> Mongodb uses it to mention geospatial data
+      // We have locations , which we saw will be embedded
+      type: {
+        type: String,
+        default: 'Point', // We can specify multiple geometries in mondodb, default one is always point , we can also specify polygon, lines or other geometries.
+        enum: ['Point'],
+      },
+      coordinates: [Number], // This will hold the coordinates like longitude first and then latitude, in google coordinates are longitude first and then latitude
+      address: String,
+      description: String,
+    },
+    /** For embedded documents we always need to create an array,
+     *  So by specifying array of objects you can create new documents inside the parent document
+     */
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number, // This will be the day of the tour when people will go to this location
+      },
+    ],
   },
   {
     toJSON: { virtuals: true },
