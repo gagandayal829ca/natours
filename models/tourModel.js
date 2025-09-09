@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { default: slugify } = require('slugify');
+const User = require('./userModel');
 
 const tourSchema = mongoose.Schema(
   {
@@ -113,6 +114,7 @@ const tourSchema = mongoose.Schema(
         day: Number, // This will be the day of the tour when people will go to this location
       },
     ],
+    guides: Array,
   },
   {
     toJSON: { virtuals: true },
@@ -127,6 +129,12 @@ tourSchema.virtual('durationWeeks').get(function () {
 // Document Middleware
 tourSchema.pre('save', function (next) {
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+tourSchema.pre('save', async function (next) {
+  const guidesPromises = this.guides.map(async (id) => await User.findById(id)); // making async/awiat here returns promises in array since it is map.
+  this.guides = await Promise.all(guidesPromises);
   next();
 });
 
