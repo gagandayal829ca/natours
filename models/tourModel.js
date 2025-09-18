@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { default: slugify } = require('slugify');
-const User = require('./userModel');
+// const User = require('./userModel');
 
 const tourSchema = mongoose.Schema(
   {
@@ -114,7 +114,11 @@ const tourSchema = mongoose.Schema(
         day: Number, // This will be the day of the tour when people will go to this location
       },
     ],
-    guides: Array,
+    // guides: Array, // guides as Array , when we want to embed the document.
+    guides: [
+      // guides as [] , when we want to do referencing instead of embed
+      { type: mongoose.Schema.ObjectId, ref: 'User' },
+    ],
   },
   {
     toJSON: { virtuals: true },
@@ -132,11 +136,12 @@ tourSchema.pre('save', function (next) {
   next();
 });
 
-tourSchema.pre('save', async function (next) {
-  const guidesPromises = this.guides.map(async (id) => await User.findById(id)); // making async/awiat here returns promises in array since it is map.
-  this.guides = await Promise.all(guidesPromises);
-  next();
-});
+// Embedding user into tours
+// tourSchema.pre('save', async function (next) {
+//   const guidesPromises = this.guides.map(async (id) => await User.findById(id)); // making async/awiat here returns promises in array since it is map.
+//   this.guides = await Promise.all(guidesPromises); // So now we loop through all promises in the array using Promise.all
+//   next();
+// });
 
 // tourSchema.post('save', function (doc, next) {
 //   console.log(doc);
@@ -151,6 +156,15 @@ tourSchema.pre(/^find/, function (next) {
   this.find({ secretTour: { $ne: true } });
 
   this.start = Date.now();
+  next();
+});
+
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt',
+  });
+
   next();
 });
 

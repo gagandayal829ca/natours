@@ -130,6 +130,8 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
 });
 
 exports.getTour = catchAsync(async (req, res, next) => {
+  // const tour = await Tour.findById(req.params.id).populate('guides'); //It will return all fields in guide collection
+  // Below will return the selectecd fields from guide
   const tour = await Tour.findById(req.params.id);
   // can also be done like below
   // const tour = await Tour.findOne({ _id: req.params.id});
